@@ -23,9 +23,9 @@ BASE_URL = "http://localhost:8000"
 
 @router.post("/api/qr/create", response_model=CreateResponse)
 def create_qr(req: CreateRequest, db: Session = Depends(get_db)):
-    try:                                                                                                                                                           
-        normalized_url = validate_url(req.url)                
-    except ValueError as e:                                                                                                                                        
+    try:
+        normalized_url = validate_url(req.url)
+    except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     token = generate_token(normalized_url, db)
 
@@ -53,18 +53,27 @@ def create_qr(req: CreateRequest, db: Session = Depends(get_db)):
 @router.get("/r/{token}")
 def redirect(token: str, request: Request, db: Session = Depends(get_db)):
     """Redirect fallback flow: Cache -> DB -> 404/410 (from slides mermaid diagram)"""
-    # TODO: Implement this function
-    #
-    # Design decision: the redirect path is the hottest path in the system, so
-    # we use a cache-first strategy (Cache -> DB -> 404/410) to minimize DB load
-    # while still handling soft-deleted and expired links.
-    #
-    # Hints:
-    # 1. Check redirect_cache first — on hit, call _record_scan() and return
-    #    RedirectResponse(status_code=302).
-    # 2. On miss, query the DB: raise 404 if not found, 410 if is_deleted or
-    #    past expires_at; otherwise warm the cache, _record_scan(), and 302.
-    raise NotImplementedError("redirect() is not yet implemented")
+    # Cache hit
+    if token in redirect_cache:
+        _record_scan(token, request, db)
+        return RedirectResponse(url=redirect_cache[token], status_code=302)
+
+    # Cache miss — go to DB
+    mapping = db.query(UrlMapping).filter(UrlMapping.token == token).first()
+
+    if mapping is None:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    if mapping.is_deleted:
+        raise HTTPException(status_code=410, detail="Gone")
+
+    if mapping.expires_at is not None and mapping.expires_at < datetime.now():
+        raise HTTPException(status_code=410, detail="Gone")
+
+    # Warm cache and redirect
+    redirect_cache[token] = mapping.original_url
+    _record_scan(token, request, db)
+    return RedirectResponse(url=mapping.original_url, status_code=302)
 
 
 @router.get("/api/qr/{token}", response_model=QRInfoResponse)
