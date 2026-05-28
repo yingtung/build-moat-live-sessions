@@ -38,13 +38,43 @@ This is the traditional RAG path: semantic retrieval with embeddings and a vecto
 Answer these before you start coding:
 
 1. Which retrieval strategy did you choose, and why?
+    
+    Ans: I choose strategy A. This is because it's used as a Q&A chatbot, so there isn't much data to deal with, and the  system will be low-maintainance.
+
 2. What is the retrieval unit in your design: file, section, or chunk?
+
+    Ans: Section is chosen because it provides the complete context for the subject.
+
 3. How do you decide what goes into the prompt?
+
+    Ans: Strictly structure the prompt to restrict LLM outputs, and assign a clear role and mission to the LLM.
+
 4. How do you cite sources so users can inspect the original Markdown?
+
+    Ans: It's very convenient to cite sources using anchors in Markdown.
+
 5. What should happen when retrieval finds weak or irrelevant results?
+
+    Ans: If no relevant information is found, the LLM should state that there are no relevant results in the database.
+
 6. When would you switch from Markdown KB to Vector RAG?
+
+    Ans: When the QA chatbot encounters the following issuses:
+    - Multilingual users
+    - Vairous data formats such as PDF, MP3, or Word files.
+    - Queries without keywords
+
+
 7. When would you switch from Vector RAG back to a Markdown index?
+
+    Ans: When should we switch from Vector RAG to Markdown index.
+     - Hallucination
+     - Difficulty in debugging (e.g., hard to explain why two vectors are similar)
+     - High maintenance and high cost
+
 8. If the knowledge base grows from 10 files to 100,000 files, what changes?
+
+    Ans: This data should be indexed in a search engine such as Elasticsearch.
 
 ## Verification
 
